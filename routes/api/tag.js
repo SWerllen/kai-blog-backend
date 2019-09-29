@@ -22,10 +22,16 @@ function checkUser(ctx,uname){
 //获取标签，如果存在参数size和page则返回分页标签，如果不存在其中一项，返回所有标签 （用户自己的）
 router.get('/',async ctx=>{
     let uname = ctx.session.userName;
-    if(!checkUser(ctx,uname)) return;
     let {size,page} = ctx.params;
     let tags;
-    if(!size){
+    if(!checkUser(ctx,uname)) {
+        tags =await Tag.findAll({
+            include:[
+                {model:User,attributes:['username']}
+            ]
+        });
+    }
+    else if(!size){
         tags =await Tag.findAll({
             include:[
                 {model:User,where:{username:uname},attributes:['username']}

@@ -96,6 +96,36 @@ router.get('/own',async  (ctx,next)=>{
     }
 })
 
+//获取热门文章,y
+router.get('/hottest',async ctx=>{
+    let articles = await Article.findAll({
+        include:[
+            {model:User,attributes:['username']},
+            {model:Tag,attributes:['id','name','user_id']}
+        ],
+        limit:5,
+        order:[['clicktime','DESC']]
+    });
+    let results_length = await Article.count();
+    articles.forEach(ele=>{
+        ele.dataValues.username=ele.User.username;
+        ele.content = ele.content.slice(0,100)+((ele.content.length>100)?".......":"");
+        ele.dataValues.tags = ele.Tags;
+        ele.dataValues.tags.forEach(ele2=>{
+            delete ele2.dataValues.ArticleTag;
+        })
+        delete ele.dataValues.Tags;
+        delete ele.dataValues.User;
+        delete ele.dataValues.user_id;
+    })
+    ctx.body = {
+        success:true,
+        info:`用户 ${ctx.session.userName} 获取热门文章成功`,
+        data: articles,
+        results_length:results_length
+    }
+})
+
 //获取一篇指定文章的具体内容
 router.get('/:id',async (ctx,next)=>{
     console.log(ctx.params)
@@ -352,6 +382,7 @@ router.get('/divided/:tagetId',async  (ctx,next)=>{
             data: null,
             results_length:0
         }
+        return;
     }
     let page= +ctx.query.page;
     let size= +ctx.query.size;
