@@ -6,6 +6,7 @@ const Tag = require("../../database/tagModel")
 const sequelize = require('../../database/sequelizeModel')
 router.prefix('/article');
 
+//按size和page获取文章，返回的data是Article[]
 router.get('/',async  (ctx,next)=>{
     let page=+ctx.query.page;
     let size= +ctx.query.size;
@@ -15,15 +16,6 @@ router.get('/',async  (ctx,next)=>{
     }
     console.log(ctx.session.userName,"访问了文章",`第${page}页, 共${size}项`);
 
-    // let relations = await ArticleTag.findAll({
-    //     include:[
-    //         {model:Article,offset:(page-1)*size,limit:size,order:[['date','DESC']],include:[{model:User,attributes:['username']}]},
-    //         {model:Tag}
-    //     ]
-    // });
-
-    // console.log(relations);
-    // return;
     let articles = await Article.findAll({
         include:[
             {model:User,attributes:['username']},
@@ -53,6 +45,7 @@ router.get('/',async  (ctx,next)=>{
     }
 })
 
+//按size和page获取 自己的 文章，返回的data是Article[]
 router.get('/own',async  (ctx,next)=>{
     let uname=ctx.session.userName;
     if(!uname){
@@ -103,6 +96,7 @@ router.get('/own',async  (ctx,next)=>{
     }
 })
 
+//获取一篇指定文章的具体内容
 router.get('/:id',async (ctx,next)=>{
     console.log(ctx.params)
     let article = await Article.findOne({
@@ -138,6 +132,7 @@ router.get('/:id',async (ctx,next)=>{
     }
 })
 
+//新建一篇文章
 router.post('/',async (ctx,next)=>{
     if(!ctx.session.userName){
         ctx.body = {
@@ -193,6 +188,7 @@ router.post('/',async (ctx,next)=>{
     }
 })
 
+//删除某一篇文章
 router.delete('/:id',async (ctx,next)=>{
     let uname = ctx.session.userName;
     if(!uname){
@@ -241,7 +237,7 @@ router.delete('/:id',async (ctx,next)=>{
     }
 })
 
-
+//修改某一篇文章
 router.put('/:id',async (ctx,next)=>{
     let uname = ctx.session.userName;
     if(!uname){
@@ -346,4 +342,56 @@ router.post('/click/:id',async ctx=>{
     }
 })
 
+//获取按照某一标签分类的所有文章
+router.get('/divided/:tagetId',async  (ctx,next)=>{
+    let uname=ctx.session.userName;
+    if(!uname){
+        ctx.body = {
+            success:true,
+            info:`用户未登录`,
+            data: null,
+            results_length:0
+        }
+    }
+    let page= +ctx.query.page;
+    let size= +ctx.query.size;
+    if(isNaN(page)||isNaN(size)){
+        page=1;
+        size=5;
+    }
+    let tagetId=ctx.params.tagetId;
+    console.log(`${uname}访问了标签 <${tagetId}> 的文章`);
+    let articles = await Article.findAll({
+        include:[
+            {model:User,attributes:['username']},
+            {model:Tag,attributes:['id','name','user_id'],where:{id:tagetId}}
+        ],
+        offset:(page-1)*size,
+        limit:size,
+        order:[['date','DESC']],
+    });
+    let results_length = await Article.count({
+        include:[
+            {model:User,attributes:['username'],where:{username:uname}},
+            {model:Tag,attributes:['id','name','user_id'],where:{id:tagetId}}
+        ],
+    });
+    articles.forEach(ele=>{
+        ele.dataValues.username=ele.User.username;
+        ele.content = ele.content.slice(0,100)+((ele.content.length>100)?".......":"");
+        ele.dataValues.tags = ele.Tags;
+        ele.dataValues.tags.forEach(ele2=>{
+            delete ele2.dataValues.ArticleTag;
+        })
+        delete ele.dataValues.Tags;
+        delete ele.dataValues.User;
+        delete ele.dataValues.user_id;
+    })
+    ctx.body = {
+        success:true,
+        info:`用户 ${ctx.session.userName} 获取文章 ${size}/${results_length} 成功`,
+        data: articles,
+        results_length:results_length
+    }
+})
 module.exports = router;

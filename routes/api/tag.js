@@ -6,6 +6,7 @@ const ArticleTag = require('../../database/articleTagModel')
 const sequelize = require('../../database/sequelizeModel')
 router.prefix('/tag');
 
+//检查用户是否登录
 function checkUser(ctx,uname){
     if(!uname){
         ctx.body={
@@ -18,6 +19,7 @@ function checkUser(ctx,uname){
     return true;
 }
 
+//获取标签，如果存在参数size和page则返回分页标签，如果不存在其中一项，返回所有标签 （用户自己的）
 router.get('/',async ctx=>{
     let uname = ctx.session.userName;
     if(!checkUser(ctx,uname)) return;
@@ -49,6 +51,7 @@ router.get('/',async ctx=>{
     return;
 })
 
+//新建一个标签
 router.post('/',async ctx=>{
     let uname = ctx.session.userName;
     if(!checkUser(ctx,uname)) return;
@@ -85,6 +88,7 @@ router.post('/',async ctx=>{
     }
 })
 
+//将某一个标签加在文章上，新建一个ArticleTag关系
 router.post('/:article_id',async ctx=>{
     let uname = ctx.session.userName;
     if(!checkUser(ctx,uname)) return;
@@ -140,6 +144,7 @@ router.post('/:article_id',async ctx=>{
     }
 })
 
+//删除某一个标签，会顺带删除以此标签为外键的文章标签关系
 router.delete('/:id',async ctx=>{
     let uname = ctx.session.userName;
     if(!checkUser(ctx,uname)) return;
@@ -153,6 +158,7 @@ router.delete('/:id',async ctx=>{
     }
 })
 
+//修改某一个标签的名字
 router.put('/:id',async ctx=>{
     let uname = ctx.session.userName;
     if(!checkUser(ctx,uname)) return;
